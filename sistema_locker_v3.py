@@ -1,103 +1,9 @@
-
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
-
-#CLASSE LOCKER
-class Locker:
-    def __init__(self, locker_id, locker_ocupado=False, locker_usuario=None):
-        self.__locker_id = locker_id
-        self.__is_ocupado = locker_ocupado
-        self.__usuario_id = locker_usuario
-
-    def associar_usuario(self, usuario_id):
-        if not self.__is_ocupado:
-            self.__is_ocupado = True
-            self.__usuario_id = usuario_id
-            return True
-        return False
-
-    def liberar_usuario(self):
-        if self.__is_ocupado:
-            self.__is_ocupado = False
-            self.__usuario_id = None
-            return True
-        return False
-
-    def get_id_locker(self):
-        return self.__locker_id
-
-#NÃO ESTAVA NO CÓDIGO ORIGINAL
-    def get_ocupado(self):
-        return self.__is_ocupado
-    
-#NÃO ESTAVA NO CÓDIGO ORIGINAL
-    def get_id_usuario(self):
-        return self.__usuario_id
-
-    def get_status(self):
-        return self.__is_ocupado, self.__usuario_id
-
-#CLASSE USUÁRIO
-class Usuario:
-    def __init__(self, usuario_id, nome):
-        self.__usuario_id = usuario_id
-        self.__nome = nome
-
-    def get_id_usuario(self):
-        return self.__usuario_id
-
-    def get_nome(self):
-        return self.__nome
-
-    def get_status(self):
-        return self.__usuario_id, self.__nome
-
-
-#Herança
-#CLASSE MORADOR
-class Morador(Usuario):
-    def __init__(self, usuario_id, nome, apartamento):
-        super().__init__(usuario_id, nome)
-        self.__apartamento = apartamento
-
-    #def get_id_usuario(self):
-     #   return self.__usuario_id
-
-    #def get_nome(self):
-     #   return self.__nome
-    
-    def get_apartamento(self):
-        return self.__apartamento
-
-#####INCLUIR POLIMORFISMO????
-       
-
-    def get_status(self):
-        return self.usuario_id(), self.nome(), self.__apartamento()
-
-    
-
-#Herança
-#CLASSE ENTREGADOR
-class Entregador(Usuario):
-    def __init__(self, usuario_id, nome, empresa):
-        super().__init__(usuario_id, nome)
-        self.__empresa = empresa
-
-    #def get_id_usuario(self):
-     #   return self.__usuario_id
-
-    #def get_nome(self):
-     #   return self.__nome
-
-    def get_empresa(self):
-        return self.__empresa
-
-#####INCLUIR POLIMORFISMO????
-
-    def get_status(self):
-        return self.usuario_id(), self.nome(), self.__empresa
-
+from locker import Locker
+from usuario import Usuario
+from morador import Morador
+from entregador import Entregador
 
 #CLASSE SISTEMA LOCKER
 class SistemaLocker:
@@ -106,12 +12,8 @@ class SistemaLocker:
         self.__usuarios = {}
         self.__moradores = {}
         self.__entregadores = {}
-        self.__locker_arq = 'lockers.txt'
+        self.__locker_arquivo = 'lockers.txt'
         self.carregar_lockers()
-
-#NÃO ESTAVA NO CÓDIGO ORIGINAL
-    def existe_locker(self, id_locker):
-        return id_locker in self.__lockers
 
 #AJUSTEI CONFORME CÓDIGO ORIGINAL
     def adicionar_locker(self, locker_id):
@@ -122,12 +24,58 @@ class SistemaLocker:
         return False
 
 #NÃO ESTAVA NO CÓDIGO ORIGINAL
+    def get_lockers(self):
+        return self.__lockers
+
+    def libera_locker(self, locker_id):
+        if locker_id in self.__lockers:
+            return self.__lockers[locker_id].liberar_usuario()
+        return False
+
+#NÃO ESTAVA NO CÓDIGO ORIGINAL
     def excluir_locker(self, locker_id):
         if locker_id in self.__lockers:
             del self.__lockers[locker_id]
-            self.salvar_dados(self.__locker_arq)
+            self.salvar_dados(self.__locker_arquivo)
             return True
         return False
+
+#NÃO ESTAVA NO CÓDIGO ORIGINAL
+    def existe_locker(self, id_locker):
+        return id_locker in self.__lockers
+
+#NÃO ESTAVA NO CÓDIGO ORIGINAL
+    def is_locker_livre(self, locker_id):
+        return locker_id in self.__lockers and not self.__lockers[locker_id].get_ocupado()
+
+    def associar_locker_ao_usuario(self, locker_id, usuario_id, usuario_tipo):
+        if locker_id in self.__lockers:
+            if (usuario_id in self.__usuarios or self.__moradores or self.__entregadores):
+                return self.__lockers[locker_id].associar_usuario(usuario_id, usuario_tipo)
+        return False
+
+#INCLUI PARA FICAR COMO O CÓDIGO ORIGINAL A OPÇÃO ACIMA ESTAVA NO CÓDIGO DA INTERFACE E FUNCIONA. DECIDIR QUAL MANTER
+    def get_locker_status(self, locker_id):
+        if locker_id in self.__lockers:
+            return self.__lockers[locker_id].get_status()
+        return None, None, None
+
+#NÃO ESTÁ EXATAMENTE ASSIM NO CÓDIGO ORIGINAL, MAS COMO ESTÁ MAIS COMPLETO, MANTIVE
+    def salvar_locker(self, locker):
+        with open(self.__locker_arquivo, 'a') as arquivo:
+            arquivo.write(
+                f'{locker.get_id_locker()},{locker.get_ocupado()},{locker.get_id_usuario()},{locker.get_tipo_usuario()}\n'
+            )
+
+#NÃO ESTÁ EXATAMENTE ASSIM NO CÓDIGO ORIGINAL, MAS COMO ESTÁ MAIS COMPLETO, MANTIVE
+    def carregar_lockers(self):
+        try:
+            with open(self.__locker_arquivo, 'r') as arquivo:
+                for linha in arquivo:
+                    locker_id, locker_ocupado, locker_usuario, locker_tipo = linha.strip().split(',')
+                    self.__lockers[locker_id] = Locker(locker_id, locker_ocupado == 'True', locker_usuario, locker_tipo)
+        except FileNotFoundError:
+            pass
 
     def adicionar_usuario(self, usuario_id, nome):
         if usuario_id not in self.__usuarios:
@@ -182,96 +130,37 @@ class SistemaLocker:
     def get_entregadores(self):
         return self.__entregadores
 
-#NÃO ESTAVA NO CÓDIGO ORIGINAL
-    def get_lockers(self):
-        return self.__lockers
-
-
-    def associar_locker_ao_usuario(self, locker_id, usuario_id):
-        if locker_id in self.__lockers:
-            if (usuario_id in self.__usuarios or self.__moradores or self.__entregadores):
-                return self.__lockers[locker_id].associar_usuario(usuario_id)
-        return False
-
-    def libera_locker(self, locker_id):
-        if locker_id in self.__lockers:
-            return self.__lockers[locker_id].liberar_usuario()
-        return False
-
-
-#NÃO ESTAVA NO CÓDIGO ORIGINAL. OPTEI PELO CÓDIGO ORIGINAL PARA ESTA FUNÇÃO
-    '''def get_locker_status(self, locker_id):
-        if locker_id in self.__lockers:
-            return self.__lockers[locker_id].get_ocupado(), self.__lockers[locker_id].get_id_usuario()
-        return None, None'''
-
-#INCLUI PARA FICAR COMO O CÓDIGO ORIGINAL A OPÇÃO ACIMA ESTAVA NO CÓDIGO DA INTERFACE E FUNCIONA. DECIDIR QUAL MANTER
-    def get_locker_status(self, locker_id):
-        if locker_id in self.__lockers:
-            return self.__lockers[locker_id].get_status()
-        return None, None
-
-#NÃO ESTÁ EXATAMENTE ASSIM NO CÓDIGO ORIGINAL, MAS COMO ESTÁ MAIS COMPLETO, MANTIVE
-    def salvar_locker(self, locker):
-        with open(self.__locker_arq, 'a') as arquivo:
-            arquivo.write(f'{locker.get_id_locker()},{locker.get_ocupado()},{locker.get_id_usuario()}\n')
-
-#NÃO ESTÁ EXATAMENTE ASSIM NO CÓDIGO ORIGINAL, MAS COMO ESTÁ MAIS COMPLETO, MANTIVE
-    def carregar_lockers(self):
-        try:
-            with open(self.__locker_arq, 'r') as arquivo:
-                for linha in arquivo:
-                    locker_id, locker_ocupado, locker_usuario = linha.strip().split(',')
-                    self.__lockers[locker_id] = Locker(locker_id, locker_ocupado == 'True', locker_usuario if locker_usuario != 'None' else None)
-        except FileNotFoundError:
-            pass
-
-#NÃO ESTAVA NO CÓDIGO ORIGINAL. OPTEI PELO CÓDIGO ORIGINAL PARA ESTA FUNÇÃO
-      #def salvar_dados(self, nome_arquivo):
-       # with open(nome_arquivo, 'w') as arquivo:
-        #    for locker_id, locker in self.__lockers.items():
-         #       is_ocupado, usuario_id = locker.get_ocupado(), locker.get_id_usuario()
-          #      arquivo.write(f'{locker_id},{is_ocupado},{usuario_id}\n')
-
-
 #INCLUI PARA FICAR COMO O CÓDIGO ORIGINAL A OPÇÃO ACIMA ESTAVA NO CÓDIGO DA INTERFACE E FUNCIONA. DECIDIR QUAL MANTER
     def salvar_dados(self, nome_arquivo):
         with open(nome_arquivo, 'w') as arquivo:
             for locker_id, locker in self.__lockers.items():
-                is_ocupado, usuario_id = locker.get_status()
-                arquivo.write(f'{locker_id},{is_ocupado},{usuario_id} \n')
-
+                is_ocupado, usuario_id, usuario_tipo = locker.get_status()
+                arquivo.write(f'{locker_id},{is_ocupado},{usuario_id},{usuario_tipo} \n')
 
     def carregar_dados(self, nome_arquivo):
         try:
             with open(nome_arquivo, 'r') as arquivo:
                 for linha in arquivo:
-                    locker_id, is_ocupado, usuario_id = linha.strip().split(',')
+                    locker_id, is_ocupado, usuario_id, usuario_tipo = linha.strip().split(',')
                     self.adicionar_locker(locker_id)
                     if is_ocupado == 'True':
-                        self.associar_locker_ao_usuario(locker_id, usuario_id)
+                        self.associar_locker_ao_usuario(locker_id, usuario_id, usuario_tipo)
         except FileNotFoundError:
             pass
-        
-#NÃO ESTAVA NO CÓDIGO ORIGINAL
-    def is_locker_livre(self, locker_id):
-        return locker_id in self.__lockers and not self.__lockers[locker_id].get_ocupado()
 
 #NÃO ESTAVA NO CÓDIGO ORIGINAL >> posteriormente inclui os 'ORs'
     def usuario_cadastrado(self, usuario_id):
         return usuario_id in self.__usuarios or self.__moradores or self.__entregadores
 
 #NÃO ESTAVA NO CÓDIGO ORIGINAL >> posteriormente inclui os 'ORs'
-
-    def get_usuario_unico(self, usuario_id):
-        if usuario_id in self.__usuarios:
-            return self.__usuarios[usuario_id].get_nome()
-        elif usuario_id in self.__moradores:
-            return self.__moradores[usuario_id].get_nome()
-        elif usuario_id in self.__entregadores:
-            return self.__entregadores[usuario_id].get_nome()
-        else:
-            return None 
+    def get_usuario(self, usuario_id, usuario_tipo):
+        if usuario_tipo == "Usuario":
+            usuario = self.__usuarios[usuario_id].get_nome()
+        if usuario_tipo == "Morador":
+            usuario = self.__moradores[usuario_id].get_nome()
+        if usuario_tipo == "Entregador":
+            usuario = self.__entregadores[usuario_id].get_nome()
+        return usuario
 
 #INCLUSÃO DEVIDO HERANÇA
     def morador_cadastrado(self, usuario_id):
@@ -335,26 +224,21 @@ class App:
         # self.frame_usuarios.pack(fill=tk.BOTH, expand=True)
 
         #INCLUSÃO DEVIDO HERANÇA
-
         # Frame para exibir moradores
         self.frame_moradores = tk.Frame(janela, highlightbackground="pink", highlightthickness=2)
         # self.frame_moradores.pack(fill=tk.BOTH, expand=True)
 
-
         #INCLUSÃO DEVIDO HERANÇA
-
         # Frame para exibir entregadores
         self.frame_entregadores = tk.Frame(janela, highlightbackground="green", highlightthickness=2)
         # self.frame_entregadores.pack(fill=tk.BOTH, expand=True)
 
-    
         # Treeview para exibir os usuarios
         self.treeusuarios = ttk.Treeview(self.frame_usuarios, columns=("ID", "Nome"), show="headings")
         self.treeusuarios.heading("ID", text="ID")
         self.treeusuarios.heading("Nome", text="Nome")
         self.treeusuarios.pack(fill=tk.BOTH, expand=True)
         self.atualizar_lockers()
-
 
         #INCLUSÃO DEVIDO HERANÇA
         # Treeview para exibir os moradores
@@ -374,7 +258,6 @@ class App:
         self.treeentregadores.pack(fill=tk.BOTH, expand=True)
         self.atualizar_lockers()
         
-
     def atualizar_lockers(self):
         for row in self.tree_lockers.get_children():
             self.tree_lockers.delete(row)
@@ -434,10 +317,7 @@ class App:
         usuarios = self.sistema.get_usuarios()
         for usuario in usuarios.values():
             self.treeusuarios.insert("", "end", values=(usuario.get_id_usuario(), usuario.get_nome()))
-
-        if len(usuarios) == 0:
-            self.frame_usuarios.pack_forget()  # Esconde o Frame
-        
+       
     def excluir_usuario(self):
         usuario_id = self.get_input("Digite o ID do Usuário a ser excluído:")
         if usuario_id and self.sistema.excluir_usuario(usuario_id):
@@ -446,9 +326,7 @@ class App:
         else:
             messagebox.showerror("Erro", "Usuário não encontrado ou ID inválido.")
 
-
 #INCLUSÃO DEVIDO HERANÇA
-
     def adicionar_morador(self):
         # Mostra o frame
         self.frame_moradores.pack(fill=tk.BOTH, expand=True)
@@ -472,12 +350,7 @@ class App:
         moradores = self.sistema.get_moradores()
         for morador in moradores.values():
             self.treemoradores.insert("", "end", values=(morador.get_id_usuario(), morador.get_nome(), morador.get_apartamento()))
-
-        if len(moradores) == 0:
-            self.frame_moradores.pack_forget()  # Esconde o Frame
-
-
-                                      
+                                     
     def excluir_morador(self):
         usuario_id = self.get_input("Digite o ID do Morador a ser excluído:")
         if usuario_id and self.sistema.excluir_morador(usuario_id):
@@ -485,10 +358,8 @@ class App:
             messagebox.showinfo("Sucesso", f"Morador {usuario_id} excluído com sucesso.")
         else:
             messagebox.showerror("Erro", "Morador não encontrado ou ID inválido.")
-
-            
+           
 #INCLUSÃO DEVIDO HERANÇA
-
     def adicionar_entregador(self):
         # Mostra o frame
         self.frame_entregadores.pack(fill=tk.BOTH, expand=True)
@@ -513,9 +384,6 @@ class App:
         for entregador in entregadores.values():
             self.treeentregadores.insert("", "end", values=(entregador.get_id_usuario(), entregador.get_nome(), entregador.get_empresa()))
 
-        if len(entregadores) == 0:
-            self.frame_entregadores.pack_forget()  # Esconde o Frame
-
     def excluir_entregador(self):
         usuario_id = self.get_input("Digite o ID do Entregador a ser excluído:")
         if usuario_id and self.sistema.excluir_entregador(usuario_id):
@@ -529,7 +397,8 @@ class App:
             selected_item = tree_users.selection()
             if selected_item:
                 usuario_id = tree_users.item(selected_item, "values")[0]
-                if self.sistema.associar_locker_ao_usuario(locker_id, usuario_id):
+                usuario_tipo = tree_users.item(selected_item, "values")[2]
+                if self.sistema.associar_locker_ao_usuario(locker_id, usuario_id, usuario_tipo):
                     messagebox.showinfo("Sucesso", "Locker atribuído com sucesso.")
                     self.atualizar_lockers()
                     user_window.destroy()
@@ -578,7 +447,6 @@ class App:
         else:
             messagebox.showerror("Erro", "Locker não disponível.")
 
-
     def liberar_locker(self):
         locker_id = self.get_input("Digite o ID do Locker:")
         if locker_id and self.sistema.libera_locker(locker_id):
@@ -590,14 +458,15 @@ class App:
     def verificar_status_locker(self):
         locker_id = self.get_input("Digite o ID do Locker:")
         if locker_id:
-            esta_ocupado, usuario_id = self.sistema.get_locker_status(locker_id)
+            esta_ocupado, usuario_id, usuario_tipo = self.sistema.get_locker_status(locker_id)
             if esta_ocupado:
-                usuario = self.sistema.get_usuario_unico(usuario_id)
-                messagebox.showinfo("Status do Locker", f"Locker {locker_id} - Ocupado por Usuário/Morador/Entregador: {usuario_id} - {usuario}")
+                usuario = self.sistema.get_usuario(usuario_id, usuario_tipo)
+                messagebox.showinfo("Status do Locker", f"Locker {locker_id} - Ocupado por {usuario_tipo}: {usuario}")
+            if esta_ocupado is None:
+                messagebox.showerror("Erro", "ID inválido, Locker não encontrado.")
             else:
                 messagebox.showinfo("Status do Locker", "Locker disponível.")
-        else:
-            messagebox.showerror("Erro", "ID inválido.")
+            
 
     def salvar_dados(self):
         nome_arquivo = self.get_input("Digite o nome do arquivo para salvar os dados:")
@@ -610,7 +479,6 @@ class App:
     def carregar_dados(self):
         nome_arquivo = self.get_input("Digite o nome do arquivo para carregar os dados:")
         if nome_arquivo:
-            nome_arquivo = nome_arquivo.strip() + ".txt" # Garante que o nome do arquivo termine com .txt
             self.sistema.carregar_dados(nome_arquivo)
             messagebox.showinfo("Sucesso", "Dados carregados com sucesso.")
             self.atualizar_lockers()
